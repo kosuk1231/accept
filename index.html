@@ -208,6 +208,10 @@
             <div><label for="useStart">시작</label><input type="time" id="useStart" oninput="calc('use')" /></div>
             <div><label for="useEnd">종료</label><input type="time" id="useEnd" oninput="calc('use')" /></div>
           </div>
+          <label for="useBreak">휴게 차감</label>
+          <select id="useBreak" onchange="calc('use')">
+            <option value="0">없음</option><option value="0.5">30분</option><option value="1">1시간</option><option value="1.5">1시간 30분</option>
+          </select>
           <div class="calc" id="useCalc">소요시간 <b>—</b></div>
         </div>
       </div>
@@ -308,9 +312,11 @@
   function calc(kind){
     const s = document.getElementById(kind+'Start').value;
     const e = document.getElementById(kind+'End').value;
+    const brkEl = document.getElementById(kind+'Break');
+    const brk = brkEl ? brkEl.value : 0;
     const el = document.getElementById(kind+'Calc').querySelector('b');
-    const h = hours(s,e);
-    el.textContent = h ? h + '시간' : '—';
+    const h = netHours(s, e, brk);
+    el.textContent = h ? h + '시간' + (parseFloat(brk) ? ' (휴게 ' + brkLabel(brk) + ' 제외)' : '') : '—';
   }
   function hours(s,e){
     if(!s||!e) return '';
@@ -319,6 +325,8 @@
     return Math.round((b-a)/6)/10;
   }
   function mins(t){ const m=/^(\d{1,2}):(\d{2})$/.exec(t); return m? +m[1]*60+ +m[2] : null; }
+  function netHours(s,e,brk){ const raw=hours(s,e); if(raw==='') return ''; const n=Math.round((raw-(parseFloat(brk)||0))*10)/10; return n>0?n:''; }
+  function brkLabel(b){ b=parseFloat(b)||0; return b===0.5?'30분':b===1?'1시간':b===1.5?'1시간 30분':b+'시간'; }
 
   /* ---- 발생 다건 ---- */
   function addOccur(){
@@ -332,6 +340,8 @@
       + '<label>사유</label><input class="o-reason" placeholder="예: 주말 행사 근무" />'
       + '<div class="row"><div><label>시작</label><input type="time" class="o-start" oninput="recalc()"></div>'
       + '<div><label>종료</label><input type="time" class="o-end" oninput="recalc()"></div></div>'
+      + '<label>휴게 차감</label><select class="o-brk" onchange="recalc()">'
+      +   '<option value="0">없음</option><option value="0.5">30분</option><option value="1">1시간</option><option value="1.5">1시간 30분</option></select>'
       + '<div class="o-calc calc">소요 <b>—</b></div>';
     list.appendChild(div);
     renumber();
@@ -345,8 +355,12 @@
   function recalc(){
     let total = 0;
     document.querySelectorAll('#occurList .occur-item').forEach(function(it){
-      const h = hours(it.querySelector('.o-start').value, it.querySelector('.o-end').value);
-      it.querySelector('.o-calc b').textContent = h ? h + '시간' : '—';
+      const s = it.querySelector('.o-start').value, e = it.querySelector('.o-end').value;
+      const brk = it.querySelector('.o-brk').value;
+      const h = netHours(s, e, brk);
+      it.querySelector('.o-calc b').textContent = h
+        ? h + '시간' + (parseFloat(brk) ? ' (휴게 ' + brkLabel(brk) + ' 제외)' : '')
+        : '—';
       if(h) total += h;
     });
     total = Math.round(total * 10) / 10;
@@ -362,10 +376,11 @@
     const out = [];
     document.querySelectorAll('#occurList .occur-item').forEach(function(it){
       const s = it.querySelector('.o-start').value, e = it.querySelector('.o-end').value;
+      const brk = it.querySelector('.o-brk').value;
       out.push({
         date: it.querySelector('.o-date').value,
         reason: (it.querySelector('.o-reason').value || '').trim(),
-        start: s, end: e, hours: hours(s, e) || ''
+        start: s, end: e, brk: parseFloat(brk) || 0, hours: netHours(s, e, brk) || ''
       });
     });
     return out;
@@ -394,7 +409,7 @@
       action:'submit',
       dept: val('dept'), name: val('name'), email: val('email'),
       occurs: occurs,
-      useDate: val('useDate'), useStart: val('useStart'), useEnd: val('useEnd')
+      useDate: val('useDate'), useStart: val('useStart'), useEnd: val('useEnd'), useBreak: val('useBreak')
     };
     if(!data.name){ toast('성명을 입력하세요'); return; }
     if(!occurs.length || !occurs[0].date || !occurs[0].reason){ toast('발생일과 사유를 입력하세요'); return; }
@@ -408,6 +423,7 @@
         toast('결재를 상신했습니다');
         document.getElementById('occurList').innerHTML = ''; addOccur();
         ['useStart','useEnd'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('useBreak').value = '0';
         calc('use');
         if(val('name')) { document.getElementById('myName').value = val('name'); loadMine(); }
       } else { toast(r.error || '상신 실패'); }
@@ -563,7 +579,7 @@
       let t = (x.date||'');
       if(x.reason) t += ' ' + x.reason;
       if(x.start && x.end) t += ' ' + x.start + '~' + x.end;
-      if(x.hours) t += ' (' + x.hours + 'h)';
+      if(x.hours) t += ' (' + x.hours + 'h' + (parseFloat(x.brk) ? ', 휴게 ' + brkLabel(x.brk) : '') + ')';
       return esc(t);
     }).join('<br>');
   }
