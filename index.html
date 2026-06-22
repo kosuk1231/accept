@@ -449,7 +449,7 @@
     const head = document.createElement('div');
     head.className = 'card';
     head.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<div style="font-weight:800">결재 대기 <span style="color:var(--brand)">'+rows.length+'</span>건</div>'
+      + '<div style="font-weight:800">결재 대기 <span id="inboxCount" style="color:var(--brand)">'+rows.length+'</span>건</div>'
       + '<button class="btn btn-sm" style="background:#eceef1;color:var(--ink)" onclick="refreshInbox()">새로고침</button></div>';
     box.appendChild(head);
     if(!rows.length){ box.insertAdjacentHTML('beforeend','<div class="empty">대기 중인 신청이 없습니다.</div>'); return; }
@@ -461,23 +461,29 @@
   }
 
   /* ---- 결재 처리 ---- */
-  async function decide(id, result){
+  function decide(id, result){
     let note = '';
     if(result==='reject'){ note = prompt('반려 사유를 입력하세요'); if(note===null) return; }
-    const r = await post({action:result, id, pin:approverPin, note});
-    if(r.ok){
-      let msg = result==='approve' ? '승인했습니다' : '반려했습니다';
-      if(result==='approve' && r.calendar==='fail') msg = '승인됨 · 단 캘린더 등록 실패 (웹앱 재배포·권한 확인)';
-      toast(msg); refreshInbox();
-    }
-    else toast(r.error || '처리 실패');
+
+    // 즉시 카드 제거 + 대기 건수 감소 (체감 속도)
+    const card = document.querySelector('#inbox [data-id="'+id+'"]');
+    if(card) card.remove();
+    const cntEl = document.getElementById('inboxCount');
+    if(cntEl){ const n = Math.max(0, (parseInt(cntEl.textContent,10)||1) - 1); cntEl.textContent = n; }
+    toast(result==='approve' ? '승인했습니다 · 등록 처리 중…' : '반려했습니다');
+
+    // 실제 처리는 백그라운드
+    post({action:result, id, pin:approverPin, note}).then(function(r){
+      if(!r.ok){ toast(r.error || '처리 실패'); refreshInbox(); return; }
+      if(result==='approve' && r.calendar==='fail') toast('승인됨 · 단 캘린더 등록 실패 (권한·재배포 확인)');
+    }).catch(function(){ toast('연결 오류 — 새로고침으로 확인하세요'); refreshInbox(); });
   }
 
   /* ---- 카드 렌더 ---- */
   function itemCard(row, withActions){
     const div = document.createElement('div');
     div.className = withActions ? 'item' : 'item';
-    if(withActions) div.style.background = '#fff', div.classList.add('card');
+    if(withActions){ div.style.background = '#fff'; div.classList.add('card'); div.dataset.id = row['ID']; }
     const status = row['상태'] || '대기';
     const badge = status==='승인' ? 'b-ok' : status==='반려' ? 'b-no' : 'b-wait';
 
