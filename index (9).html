@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>탄력사용 결재</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  /* ===== 배포 후 이 값만 채우세요 (GAS 웹앱 /exec URL) ===== */
+  /* GAS_URL 은 <script> 하단에 있습니다. */
+
+  :root{
+    --ink:#161a20; --ink-soft:#5b6472; --line:#e6e8ec; --line-soft:#eef0f3;
+    --bg:#f4f6f8; --card:#ffffff; --brand:#0f766e; --brand-deep:#0b5a54;
+    --occur:#b45309; --occur-bg:#fdf3e7;
+    --use:#0f766e;  --use-bg:#e9f4f3;
+    --wait:#9a6700; --wait-bg:#fdf3d4;
+    --ok:#0a7a4b;   --ok-bg:#e3f5ec;
+    --no:#b4232a;   --no-bg:#fbe9ea;
+    --radius:14px; --shadow:0 1px 2px rgba(20,26,32,.04),0 8px 24px rgba(20,26,32,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.5;letter-spacing:-0.01em;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:24px 18px 80px}
+
+  header.top{padding:22px 0 18px}
+  .eyebrow{font-size:12px;font-weight:600;color:var(--brand);letter-spacing:.06em;text-transform:uppercase}
+  h1{font-size:24px;font-weight:800;margin-top:4px}
+  .sub{color:var(--ink-soft);font-size:14px;margin-top:6px}
+
+  .tabs{display:flex;gap:6px;background:#eceef1;padding:5px;border-radius:12px;margin:18px 0}
+  .tab{flex:1;border:0;background:transparent;padding:11px 0;border-radius:9px;font:inherit;
+    font-weight:700;font-size:15px;color:var(--ink-soft);cursor:pointer;transition:.15s}
+  .tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px;margin-bottom:16px}
+
+  .row{display:flex;gap:12px}
+  .row > *{flex:1}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px}
+  input,textarea,select{
+    width:100%;font:inherit;font-size:15px;color:var(--ink);background:#fbfcfd;
+    border:1px solid var(--line);border-radius:10px;padding:11px 12px;transition:.12s;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand);
+    background:#fff;box-shadow:0 0 0 3px rgba(15,118,110,.12)}
+  textarea{resize:vertical;min-height:62px}
+
+  .block{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px;position:relative}
+  .block-occur{background:var(--occur-bg);border-color:#f1dcc0}
+  .block-use{background:var(--use-bg);border-color:#cfe6e3}
+  .block-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .block-occur .dot{background:var(--occur)} .block-occur .block-title{color:var(--occur)}
+  .block-use .dot{background:var(--use)} .block-use .block-title{color:var(--use)}
+  .block label{margin-top:12px}
+  .block .card-inner input{background:#fff}
+
+  .calc{font-size:13px;color:var(--ink-soft);margin-top:10px;font-weight:600}
+  .calc b{color:var(--ink);font-size:15px}
+
+  .btn{width:100%;border:0;border-radius:11px;padding:14px;font:inherit;font-weight:800;
+    font-size:15px;cursor:pointer;transition:.12s}
+  .btn-primary{background:var(--brand);color:#fff;margin-top:20px}
+  .btn-primary:hover{background:var(--brand-deep)}
+  .btn-primary:disabled{opacity:.5;cursor:default}
+  .btn-ok{background:var(--ok-bg);color:var(--ok)}
+  .btn-no{background:var(--no-bg);color:var(--no)}
+  .btn-sm{padding:9px 14px;font-size:14px;border-radius:9px;width:auto}
+
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.6;
+    background:#f7f8fa;border-radius:10px;padding:12px 14px}
+  .hint b{color:var(--ink)}
+
+  .item{border:1px solid var(--line);border-radius:12px;padding:15px 16px;margin-top:12px}
+  .item-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .who{font-weight:800;font-size:15px}
+  .badge{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .b-wait{background:var(--wait-bg);color:var(--wait)}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+  .b-no{background:var(--no-bg);color:var(--no)}
+  .meta{margin-top:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px}
+  .meta .k{color:var(--ink-soft);font-weight:600}
+  .meta .v{color:var(--ink)}
+  .actions{display:flex;gap:8px;margin-top:14px}
+  .actions .btn{width:auto;flex:1}
+
+  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:30px 0}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:13px 20px;border-radius:12px;font-weight:700;
+    font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:50;box-shadow:var(--shadow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:r .7s linear infinite;vertical-align:-2px}
+  @keyframes r{to{transform:rotate(360deg)}}
+
+  .pin-gate{text-align:center;padding:8px 0}
+  .pin-in{letter-spacing:.4em;text-align:center;font-size:20px;font-weight:800;max-width:200px;margin:14px auto 0}
+
+  @media (max-width:520px){ .row{flex-direction:column;gap:0} h1{font-size:21px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">2026 탄력사용</div>
+    <h1>탄력사용 결재</h1>
+    <p class="sub">발생·사용 내역을 적어 상신하면 부장 결재 후 캘린더에 자동 등록됩니다.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" id="t-apply" onclick="switchTab('apply')">신청하기</button>
+    <button class="tab" role="tab" aria-selected="false" id="t-approve" onclick="switchTab('approve')">부장 결재함</button>
+  </div>
+
+  <!-- ===== 신청 ===== -->
+  <section id="panel-apply">
+    <div class="card">
+      <div class="row">
+        <div><label for="dept">부서</label><input id="dept" placeholder="예: 회원조직팀" /></div>
+        <div><label for="name">성명</label><input id="name" placeholder="이름" /></div>
+      </div>
+
+      <!-- 발생 -->
+      <div class="block block-occur">
+        <div class="block-title"><span class="dot"></span>탄력 발생</div>
+        <div class="card-inner">
+          <label for="occurDate">발생일</label>
+          <input type="date" id="occurDate" />
+          <label for="reason">사유</label>
+          <input id="reason" placeholder="예: 주말 행사 근무" />
+          <div class="row">
+            <div><label for="occurStart">시작</label><input type="time" id="occurStart" oninput="calc('occur')" /></div>
+            <div><label for="occurEnd">종료</label><input type="time" id="occurEnd" oninput="calc('occur')" /></div>
+          </div>
+          <div class="calc" id="occurCalc">소요시간 <b>—</b></div>
+        </div>
+      </div>
+
+      <!-- 사용 -->
+      <div class="block block-use">
+        <div class="block-title"><span class="dot"></span>탄력 사용</div>
+        <div class="card-inner">
+          <label for="useDate">사용일</label>
+          <input type="date" id="useDate" />
+          <div class="row">
+            <div><label for="useStart">시작</label><input type="time" id="useStart" oninput="calc('use')" /></div>
+            <div><label for="useEnd">종료</label><input type="time" id="useEnd" oninput="calc('use')" /></div>
+          </div>
+          <div class="calc" id="useCalc">소요시간 <b>—</b></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn" onclick="submit()">결재 상신</button>
+
+      <div class="hint">
+        <b>운영 기준</b><br>
+        · 발생일 기준 2주 이내 사용 · 사용일 전 결재 필수(가급적 1일 전)<br>
+        · 급작스러운 사용은 팀즈 구두승인 후 출근 즉시 상신<br>
+        · 승인되면 캘린더 자동 등록 + 부장·동료 팀즈 공유
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:flex-end">
+        <div><label for="myName" style="margin-top:0">내 신청 조회</label>
+          <input id="myName" placeholder="조회할 이름" /></div>
+        <button class="btn btn-sm" style="background:#eceef1;color:var(--ink);margin-bottom:1px"
+          onclick="loadMine()">조회</button>
+      </div>
+      <div id="myList"></div>
+    </div>
+  </section>
+
+  <!-- ===== 결재 ===== -->
+  <section id="panel-approve" style="display:none">
+    <div class="card" id="pinCard">
+      <div class="pin-gate">
+        <div style="font-weight:800;font-size:16px">부장 결재함</div>
+        <p class="sub" style="margin-top:4px">PIN을 입력하면 대기 중인 신청이 열립니다.</p>
+        <input class="pin-in" id="pin" type="password" inputmode="numeric" placeholder="••••"
+          onkeydown="if(event.key==='Enter')openInbox()" />
+        <button class="btn btn-primary" style="max-width:200px;margin:16px auto 0" onclick="openInbox()">열기</button>
+      </div>
+    </div>
+    <div id="inbox"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* =====================================================================
+     배포 후 아래 GAS_URL 한 줄만 본인 웹앱 주소로 바꾸면 됩니다.
+     (Apps Script > 배포 > 새 배포 > 웹 앱 에서 받은 .../exec 주소)
+     ===================================================================== */
+  const GAS_URL = "여기에_GAS_웹앱_URL_붙여넣기";
+
+  let approverPin = "";
+
+  /* ---- 탭 ---- */
+  function switchTab(which){
+    const apply = which === 'apply';
+    document.getElementById('panel-apply').style.display = apply ? '' : 'none';
+    document.getElementById('panel-approve').style.display = apply ? 'none' : '';
+    document.getElementById('t-apply').setAttribute('aria-selected', apply);
+    document.getElementById('t-approve').setAttribute('aria-selected', !apply);
+  }
+
+  /* ---- 소요시간 자동 계산 ---- */
+  function calc(kind){
+    const s = document.getElementById(kind+'Start').value;
+    const e = document.getElementById(kind+'End').value;
+    const el = document.getElementById(kind+'Calc').querySelector('b');
+    const h = hours(s,e);
+    el.textContent = h ? h + '시간' : '—';
+  }
+  function hours(s,e){
+    if(!s||!e) return '';
+    const a = mins(s), b = mins(e);
+    if(b<=a) return '';
+    return Math.round((b-a)/6)/10;
+  }
+  function mins(t){ const m=/^(\d{1,2}):(\d{2})$/.exec(t); return m? +m[1]*60+ +m[2] : null; }
+
+  /* ---- 통신 (POST는 text/plain 으로 보내 CORS preflight 회피) ---- */
+  async function post(body){
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(body)
+    });
+    return res.json();
+  }
+  async function get(params){
+    const q = new URLSearchParams(params).toString();
+    const res = await fetch(GAS_URL + '?' + q);
+    return res.json();
+  }
+
+  /* ---- 상신 ---- */
+  async function submit(){
+    const data = {
+      action:'submit',
+      dept: val('dept'), name: val('name'),
+      occurDate: val('occurDate'), reason: val('reason'),
+      occurStart: val('occurStart'), occurEnd: val('occurEnd'),
+      useDate: val('useDate'), useStart: val('useStart'), useEnd: val('useEnd')
+    };
+    if(!data.name){ toast('성명을 입력하세요'); return; }
+    if(!data.occurDate || !data.reason){ toast('발생일과 사유를 입력하세요'); return; }
+    if(!data.useDate){ toast('사용일을 입력하세요'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 상신 중…';
+    try{
+      const r = await post(data);
+      if(r.ok){
+        toast('결재를 상신했습니다');
+        ['reason','occurStart','occurEnd','useStart','useEnd'].forEach(id=>document.getElementById(id).value='');
+        calc('occur'); calc('use');
+        if(val('name')) { document.getElementById('myName').value = val('name'); loadMine(); }
+      } else { toast(r.error || '상신 실패'); }
+    }catch(e){ toast('연결 오류 — URL 설정을 확인하세요'); }
+    btn.disabled = false; btn.textContent = '결재 상신';
+  }
+
+  /* ---- 내 신청 조회 ---- */
+  async function loadMine(){
+    const name = val('myName');
+    if(!name){ toast('이름을 입력하세요'); return; }
+    const box = document.getElementById('myList');
+    box.innerHTML = '<div class="empty">불러오는 중…</div>';
+    try{
+      const r = await get({action:'list', name});
+      box.innerHTML = '';
+      if(!r.ok || !r.rows.length){ box.innerHTML = '<div class="empty">신청 내역이 없습니다.</div>'; return; }
+      r.rows.forEach(row => box.appendChild(itemCard(row, false)));
+    }catch(e){ box.innerHTML = '<div class="empty">조회 오류</div>'; }
+  }
+
+  /* ---- 부장 결재함 ---- */
+  async function openInbox(){
+    const pin = val('pin');
+    if(!pin){ toast('PIN을 입력하세요'); return; }
+    const box = document.getElementById('inbox');
+    box.innerHTML = '<div class="empty">확인 중…</div>';
+    try{
+      const r = await get({action:'pending', pin});
+      if(!r.ok){ box.innerHTML=''; toast(r.error || 'PIN 오류'); return; }
+      approverPin = pin;
+      document.getElementById('pinCard').style.display = 'none';
+      renderInbox(r.rows);
+    }catch(e){ box.innerHTML=''; toast('연결 오류'); }
+  }
+  function renderInbox(rows){
+    const box = document.getElementById('inbox');
+    box.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'card';
+    head.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<div style="font-weight:800">결재 대기 <span style="color:var(--brand)">'+rows.length+'</span>건</div>'
+      + '<button class="btn btn-sm" style="background:#eceef1;color:var(--ink)" onclick="refreshInbox()">새로고침</button></div>';
+    box.appendChild(head);
+    if(!rows.length){ box.insertAdjacentHTML('beforeend','<div class="empty">대기 중인 신청이 없습니다.</div>'); return; }
+    rows.forEach(row => box.appendChild(itemCard(row, true)));
+  }
+  async function refreshInbox(){
+    const r = await get({action:'pending', pin:approverPin});
+    if(r.ok) renderInbox(r.rows);
+  }
+
+  /* ---- 결재 처리 ---- */
+  async function decide(id, result){
+    let note = '';
+    if(result==='reject'){ note = prompt('반려 사유를 입력하세요'); if(note===null) return; }
+    const r = await post({action:result, id, pin:approverPin, note});
+    if(r.ok){ toast(result==='approve'?'승인했습니다':'반려했습니다'); refreshInbox(); }
+    else toast(r.error || '처리 실패');
+  }
+
+  /* ---- 카드 렌더 ---- */
+  function itemCard(row, withActions){
+    const div = document.createElement('div');
+    div.className = withActions ? 'item' : 'item';
+    if(withActions) div.style.background = '#fff', div.classList.add('card');
+    const status = row['상태'] || '대기';
+    const badge = status==='승인' ? 'b-ok' : status==='반려' ? 'b-no' : 'b-wait';
+
+    let html = '<div class="item-head"><div class="who">'
+      + esc((row['부서']? row['부서']+' / ':'') + (row['성명']||'')) + '</div>'
+      + '<span class="badge '+badge+'">'+status+'</span></div>'
+      + '<div class="meta">'
+      + kv('사유', row['사유'])
+      + kv('발생', period(row['발생일'],row['발생시작'],row['발생종료'],row['발생소요(h)']))
+      + kv('사용', period(row['사용일'],row['사용시작'],row['사용종료'],row['사용소요(h)']));
+    if(status==='반려' && row['반려사유']) html += kv('반려 사유', row['반려사유']);
+    html += '</div>';
+
+    if(withActions){
+      html += '<div class="actions">'
+        + '<button class="btn btn-ok" onclick="decide(\''+row['ID']+'\',\'approve\')">승인</button>'
+        + '<button class="btn btn-no" onclick="decide(\''+row['ID']+'\',\'reject\')">반려</button></div>';
+    }
+    div.innerHTML = html;
+    return div;
+  }
+  function kv(k,v){ return '<span class="k">'+k+'</span><span class="v">'+esc(v||'-')+'</span>'; }
+  function period(d,s,e,h){
+    let t = d || '-';
+    if(s&&e) t += ' '+s+'~'+e;
+    if(h) t += ' ('+h+'h)';
+    return t;
+  }
+
+  /* ---- 유틸 ---- */
+  function val(id){ return (document.getElementById(id).value||'').trim(); }
+  function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  let toastT;
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('show'), 2600);
+  }
+</script>
+</body>
+</html>
