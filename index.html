@@ -104,6 +104,21 @@
 
   .btn-cert{background:#eef1f4;color:var(--ink)}
 
+  /* 발생 다건 입력 */
+  .occur-item{background:#fff;border:1px solid #f1dcc0;border-radius:10px;padding:14px;margin-bottom:10px}
+  .occur-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .occur-no{font-weight:800;font-size:13px;color:var(--occur)}
+  .occur-del{border:0;background:transparent;color:#b4232a;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px;border-radius:6px}
+  .occur-del:hover{background:#fbe9ea}
+  .occur-item label{margin-top:10px}
+  .o-calc{margin-top:8px}
+  .btn-add{width:100%;border:1.5px dashed var(--occur);background:transparent;color:var(--occur);
+    border-radius:10px;padding:11px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:.12s}
+  .btn-add:hover{background:#fff3e6}
+  .occur-total{font-size:14px;font-weight:700;color:var(--occur);margin-top:12px;
+    padding-top:12px;border-top:1px solid #f1dcc0}
+  .occur-total b{font-size:16px}
+
   /* ===== 확인서 모달 ===== */
   .modal{position:fixed;inset:0;background:rgba(20,26,32,.5);display:none;
     align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto;z-index:40}
@@ -175,20 +190,12 @@
       <input id="email" type="email" placeholder="name@sasw.or.kr" />
       <datalist id="staffList"></datalist>
 
-      <!-- 발생 -->
+      <!-- 발생 (여러 건 가능) -->
       <div class="block block-occur">
-        <div class="block-title"><span class="dot"></span>탄력 발생</div>
-        <div class="card-inner">
-          <label for="occurDate">발생일</label>
-          <input type="date" id="occurDate" />
-          <label for="reason">사유</label>
-          <input id="reason" placeholder="예: 주말 행사 근무" />
-          <div class="row">
-            <div><label for="occurStart">시작</label><input type="time" id="occurStart" oninput="calc('occur')" /></div>
-            <div><label for="occurEnd">종료</label><input type="time" id="occurEnd" oninput="calc('occur')" /></div>
-          </div>
-          <div class="calc" id="occurCalc">소요시간 <b>—</b></div>
-        </div>
+        <div class="block-title"><span class="dot"></span>탄력 발생 <span id="occurCount" style="font-weight:700;font-size:12px"></span></div>
+        <div id="occurList"></div>
+        <button type="button" class="btn-add" onclick="addOccur()">+ 발생 추가</button>
+        <div class="occur-total" id="occurTotal">총 발생시간 <b>—</b></div>
       </div>
 
       <!-- 사용 -->
@@ -313,6 +320,58 @@
   }
   function mins(t){ const m=/^(\d{1,2}):(\d{2})$/.exec(t); return m? +m[1]*60+ +m[2] : null; }
 
+  /* ---- 발생 다건 ---- */
+  function addOccur(){
+    const list = document.getElementById('occurList');
+    const div = document.createElement('div');
+    div.className = 'occur-item';
+    div.innerHTML =
+        '<div class="occur-item-head"><span class="occur-no"></span>'
+      + '<button type="button" class="occur-del" onclick="removeOccur(this)">삭제</button></div>'
+      + '<label>발생일</label><input type="date" class="o-date" />'
+      + '<label>사유</label><input class="o-reason" placeholder="예: 주말 행사 근무" />'
+      + '<div class="row"><div><label>시작</label><input type="time" class="o-start" oninput="recalc()"></div>'
+      + '<div><label>종료</label><input type="time" class="o-end" oninput="recalc()"></div></div>'
+      + '<div class="o-calc calc">소요 <b>—</b></div>';
+    list.appendChild(div);
+    renumber();
+  }
+  function removeOccur(btn){
+    const items = document.querySelectorAll('#occurList .occur-item');
+    if(items.length <= 1){ toast('발생은 최소 1건이 필요합니다'); return; }
+    btn.closest('.occur-item').remove();
+    renumber();
+  }
+  function recalc(){
+    let total = 0;
+    document.querySelectorAll('#occurList .occur-item').forEach(function(it){
+      const h = hours(it.querySelector('.o-start').value, it.querySelector('.o-end').value);
+      it.querySelector('.o-calc b').textContent = h ? h + '시간' : '—';
+      if(h) total += h;
+    });
+    total = Math.round(total * 10) / 10;
+    document.getElementById('occurTotal').querySelector('b').textContent = total ? total + '시간' : '—';
+  }
+  function renumber(){
+    const items = document.querySelectorAll('#occurList .occur-item');
+    items.forEach(function(it, i){ it.querySelector('.occur-no').textContent = '발생 ' + (i + 1); });
+    document.getElementById('occurCount').textContent = items.length > 1 ? '(' + items.length + '건)' : '';
+    recalc();
+  }
+  function collectOccurs(){
+    const out = [];
+    document.querySelectorAll('#occurList .occur-item').forEach(function(it){
+      const s = it.querySelector('.o-start').value, e = it.querySelector('.o-end').value;
+      out.push({
+        date: it.querySelector('.o-date').value,
+        reason: (it.querySelector('.o-reason').value || '').trim(),
+        start: s, end: e, hours: hours(s, e) || ''
+      });
+    });
+    return out;
+  }
+  addOccur(); // 기본 발생 1건
+
   /* ---- 통신 (POST는 text/plain 으로 보내 CORS preflight 회피) ---- */
   async function post(body){
     const res = await fetch(GAS_URL, {
@@ -330,15 +389,15 @@
 
   /* ---- 상신 ---- */
   async function submit(){
+    const occurs = collectOccurs();
     const data = {
       action:'submit',
       dept: val('dept'), name: val('name'), email: val('email'),
-      occurDate: val('occurDate'), reason: val('reason'),
-      occurStart: val('occurStart'), occurEnd: val('occurEnd'),
+      occurs: occurs,
       useDate: val('useDate'), useStart: val('useStart'), useEnd: val('useEnd')
     };
     if(!data.name){ toast('성명을 입력하세요'); return; }
-    if(!data.occurDate || !data.reason){ toast('발생일과 사유를 입력하세요'); return; }
+    if(!occurs.length || !occurs[0].date || !occurs[0].reason){ toast('발생일과 사유를 입력하세요'); return; }
     if(!data.useDate){ toast('사용일을 입력하세요'); return; }
 
     const btn = document.getElementById('submitBtn');
@@ -347,8 +406,9 @@
       const r = await post(data);
       if(r.ok){
         toast('결재를 상신했습니다');
-        ['reason','occurStart','occurEnd','useStart','useEnd'].forEach(id=>document.getElementById(id).value='');
-        calc('occur'); calc('use');
+        document.getElementById('occurList').innerHTML = ''; addOccur();
+        ['useStart','useEnd'].forEach(id=>document.getElementById(id).value='');
+        calc('use');
         if(val('name')) { document.getElementById('myName').value = val('name'); loadMine(); }
       } else { toast(r.error || '상신 실패'); }
     }catch(e){ toast('연결 오류 — URL 설정을 확인하세요'); }
@@ -425,8 +485,7 @@
       + esc((row['부서']? row['부서']+' / ':'') + (row['성명']||'')) + '</div>'
       + '<span class="badge '+badge+'">'+status+'</span></div>'
       + '<div class="meta">'
-      + kv('사유', row['사유'])
-      + kv('발생', period(row['발생일'],row['발생시작'],row['발생종료'],row['발생소요(h)']))
+      + kvHtml('발생', occFullHtml(row))
       + kv('사용', period(row['사용일'],row['사용시작'],row['사용종료'],row['사용소요(h)']));
     if(status==='반려' && row['반려사유']) html += kv('반려 사유', row['반려사유']);
     html += '</div>';
@@ -466,8 +525,7 @@
       + '<div class="doc-no">문서번호 ' + esc(o['ID']||'') + '</div>'
       + '<table>'
       +   tr('신청자', esc((o['부서']?o['부서']+' / ':'') + (o['성명']||'')))
-      +   tr('발생 사유', esc(o['사유']||'-'))
-      +   tr('발생 일시', esc(period(o['발생일'],o['발생시작'],o['발생종료'],o['발생소요(h)'])))
+      +   trHtml('발생 내역', occFullHtml(o))
       +   tr('사용 일시', esc(period(o['사용일'],o['사용시작'],o['사용종료'],o['사용소요(h)'])))
       +   tr('결재 결과', '승인')
       + '</table>'
@@ -480,8 +538,30 @@
     document.getElementById('certModal').classList.add('show');
   }
   function tr(k,v){ return '<tr><th>'+k+'</th><td>'+v+'</td></tr>'; }
+  function trHtml(k,v){ return '<tr><th>'+k+'</th><td>'+(v||'-')+'</td></tr>'; }
   function sealName(n){ n = String(n||'부장'); return n.length<=3 ? n : n.slice(-3); }
   function closeCert(){ document.getElementById('certModal').classList.remove('show'); }
+
+  /* 발생 다건 파싱/표시 */
+  function parseOccurs(o){
+    let arr = [];
+    try { if(o['발생상세']) arr = JSON.parse(o['발생상세']); } catch(e){}
+    if(!arr.length && (o['발생일'] || o['사유']))
+      arr = [{date:o['발생일'], reason:o['사유'], start:o['발생시작'], end:o['발생종료'], hours:o['발생소요(h)']}];
+    return arr;
+  }
+  function occFullHtml(o){
+    const a = parseOccurs(o);
+    if(!a.length) return '-';
+    return a.map(function(x){
+      let t = (x.date||'');
+      if(x.reason) t += ' ' + x.reason;
+      if(x.start && x.end) t += ' ' + x.start + '~' + x.end;
+      if(x.hours) t += ' (' + x.hours + 'h)';
+      return esc(t);
+    }).join('<br>');
+  }
+  function kvHtml(k,v){ return '<span class="k">'+k+'</span><span class="v">'+(v||'-')+'</span>'; }
 
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeCert(); });
 
