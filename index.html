@@ -485,7 +485,7 @@
       + esc((row['부서']? row['부서']+' / ':'') + (row['성명']||'')) + '</div>'
       + '<span class="badge '+badge+'">'+status+'</span></div>'
       + '<div class="meta">'
-      + kvHtml('발생', occFullHtml(row))
+      + kvHtml('발생' + (parseOccurs(row).length > 1 ? ' (' + parseOccurs(row).length + '건)' : ''), occFullHtml(row))
       + kv('사용', period(row['사용일'],row['사용시작'],row['사용종료'],row['사용소요(h)']));
     if(status==='반려' && row['반려사유']) html += kv('반려 사유', row['반려사유']);
     html += '</div>';
