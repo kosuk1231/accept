@@ -171,7 +171,7 @@
   <header class="top">
     <div class="eyebrow">2026 탄력사용</div>
     <h1>탄력사용 결재</h1>
-    <p class="sub">발생·사용 내역을 적어 상신하면 부장 결재 후 캘린더에 자동 등록됩니다.</p>
+    <p class="sub">발생·사용 내역을 적어 상신하면 부장이 결재합니다.</p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -222,7 +222,7 @@
         <b>운영 기준</b><br>
         · 발생일 기준 2주 이내 사용 · 사용일 전 결재 필수(가급적 1일 전)<br>
         · 급작스러운 사용은 팀즈 구두승인 후 출근 즉시 상신<br>
-        · 승인되면 캘린더 자동 등록 + 부장·동료 팀즈 공유
+        · 승인되면 부장·동료에게 팀즈로 공유
       </div>
     </div>
 
@@ -490,8 +490,7 @@
 
     // 실제 처리는 백그라운드
     post({action:result, id, pin:approverPin, note}).then(function(r){
-      if(!r.ok){ toast(r.error || '처리 실패'); refreshInbox(); return; }
-      if(result==='approve' && r.calendar==='fail') toast('승인됨 · 단 캘린더 등록 실패 (권한·재배포 확인)');
+      if(!r.ok){ toast(r.error || '처리 실패'); refreshInbox(); }
     }).catch(function(){ toast('연결 오류 — 새로고침으로 확인하세요'); refreshInbox(); });
   }
 
