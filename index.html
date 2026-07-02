@@ -84,6 +84,7 @@
   .b-wait{background:var(--wait-bg);color:var(--wait)}
   .b-ok{background:var(--ok-bg);color:var(--ok)}
   .b-no{background:var(--no-bg);color:var(--no)}
+  .b-cancel{background:#eceef1;color:#6b7280}
   .meta{margin-top:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px}
   .meta .k{color:var(--ink-soft);font-weight:600}
   .meta .v{color:var(--ink)}
@@ -445,6 +446,13 @@
       r.rows.forEach(row => box.appendChild(itemCard(row, false)));
     }catch(e){ box.innerHTML = '<div class="empty">조회 오류</div>'; }
   }
+  function withdraw(id){
+    if(!confirm('이 신청을 철회하시겠습니까?')) return;
+    post({action:'withdraw', id, name: val('myName')}).then(function(r){
+      if(r.ok){ toast('신청을 철회했습니다'); loadMine(); }
+      else toast(r.error || '철회 실패');
+    }).catch(function(){ toast('연결 오류'); });
+  }
 
   /* ---- 결재함 (부장 / 사무처장 공용) ---- */
   let inboxRole = "";
@@ -503,7 +511,7 @@
     div.className = withActions ? 'item' : 'item';
     if(withActions){ div.style.background = '#fff'; div.classList.add('card'); div.dataset.id = row['ID']; }
     const status = row['상태'] || '대기';
-    const badge = status==='승인' ? 'b-ok' : status==='반려' ? 'b-no' : 'b-wait';
+    const badge = status==='승인' ? 'b-ok' : status==='반려' ? 'b-no' : status==='철회' ? 'b-cancel' : 'b-wait';
 
     let html = '<div class="item-head"><div class="who">'
       + esc((row['부서']? row['부서']+' / ':'') + (row['성명']||'')) + '</div>'
@@ -521,6 +529,8 @@
     } else if(status==='승인'){
       const ci = CERT.push(row) - 1;
       html += '<div class="actions"><button class="btn btn-cert" onclick="openCert('+ci+')">확인서 출력</button></div>';
+    } else if(status==='대기'){
+      html += '<div class="actions"><button class="btn btn-no" onclick="withdraw(\''+row['ID']+'\')">신청 철회</button></div>';
     }
     div.innerHTML = html;
     return div;
